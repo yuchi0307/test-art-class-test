@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>畫室管理系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Noto+Serif+TC:wght@400;600;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #4a3040;
+    --paper: #fdf4f5;
+    --warm: #fce8ec;
+    --accent: #c97a8a;
+    --gold: #d4956a;
+    --sage: #9cb08a;
+    --muted: #b09aa0;
+    --border: #f0d0d8;
+    --rose: #e8a4b0;
+    --cream: #fdf8f0;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Noto Serif TC',serif; background:var(--paper); color:var(--ink); min-height:100vh;
+    background-image: radial-gradient(circle at 20% 20%, #fce8ec 0%, transparent 50%),
+                      radial-gradient(circle at 80% 80%, #f0e8f5 0%, transparent 50%); }
+
+  .topbar {
+    background: linear-gradient(135deg, #c97a8a 0%, #d4956a 100%);
+    color: #fff;
+    display:flex; align-items:center; justify-content:center;
+    padding:0 28px; height:56px; position:sticky; top:0; z-index:100;
+    box-shadow: 0 2px 20px rgba(201,122,138,0.3);
+  }
+  .topbar-title { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; letter-spacing:0.05em; }
+  .topbar-title span { color:#fce8ec; opacity:0.9; }
+
+  /* 底部導覽列 */
+  .bottom-nav {
+    position: fixed; bottom:0; left:0; right:0; z-index:100;
+    background:#fff;
+    border-top: 1.5px solid var(--border);
+    display: flex;
+    box-shadow: 0 -4px 20px rgba(201,122,138,0.1);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-btn {
+    flex:1; background:none; border:none; color:var(--muted); font-family:inherit;
+    font-size:10px; padding:10px 4px 8px; cursor:pointer; transition:all 0.2s;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+  }
+  .nav-btn .nav-icon { font-size:20px; line-height:1; }
+  .nav-btn.active { color:var(--accent); }
+  .nav-btn.active .nav-icon { transform:scale(1.1); }
+  .nav-btn:hover { color:var(--accent); }
+
+  /* 底部導覽列高度補償 */
+  body { padding-bottom: 72px; }
+
+  .view { padding:20px 20px 8px; }
+
+  .view { display:none; padding:28px; max-width:920px; margin:0 auto; }
+  .view.active { display:block; animation:fadeUp 0.25s ease; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  .view-header { margin-bottom:24px; }
+  .view-title { font-family:'Playfair Display',serif; font-size:28px; font-weight:700; color:var(--accent); }
+  .view-sub { font-size:12px; color:var(--muted); margin-top:4px; font-family:'DM Mono',monospace; }
+
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:24px; }
+  .stat-card { background:#fff; border:1.5px solid var(--border); border-radius:20px; padding:20px; box-shadow:0 4px 16px rgba(201,122,138,0.08); }
+  .stat-num { font-family:'Playfair Display',serif; font-size:32px; font-weight:700; line-height:1; }
+  .stat-label { font-size:11px; color:var(--muted); margin-top:6px; font-family:'DM Mono',monospace; }
+  .stat-card.gold .stat-num { color:var(--gold); }
+  .stat-card.accent .stat-num { color:var(--accent); }
+  .stat-card.sage .stat-num { color:var(--sage); }
+
+  .section-label { font-size:11px; color:var(--muted); letter-spacing:0.1em; font-family:'DM Mono',monospace; margin-bottom:10px; text-transform:uppercase; }
+  .alert-card {
+    background:#fff; border:1.5px solid var(--border); border-radius:16px;
+    padding:14px 18px; display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin-bottom:8px; box-shadow:0 2px 10px rgba(201,122,138,0.06);
+  }
+  .alert-card.renewal { border-left:4px solid var(--gold); }
+  .alert-card.full { border-left:4px solid var(--sage); }
+  .alert-left { flex:1; }
+  .alert-name { font-size:14px; font-weight:700; }
+  .alert-detail { font-size:12px; color:var(--muted); margin-top:2px; font-family:'DM Mono',monospace; }
+  .badge { font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600; white-space:nowrap; }
+  .badge-gold { background:#fff3c4; color:#a07800; }
+  .badge-sage { background:#d4edda; color:#2d6a4f; }
+  .badge-accent { background:#ffe4e1; color:#c0392b; }
+  .badge-gray { background:#f0ece6; color:#888; }
+
+  .class-tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+  .class-tab {
+    background:#fff; border:1.5px solid var(--border); border-radius:20px;
+    padding:7px 20px; font-family:inherit; font-size:13px; cursor:pointer; transition:all 0.2s;
+    color:var(--muted);
+  }
+  .class-tab:hover { border-color:var(--rose); color:var(--accent); }
+  .class-tab.active { background:linear-gradient(135deg,#e8a4b0,#c97a8a); color:#fff; border-color:transparent; box-shadow:0 2px 10px rgba(201,122,138,0.3); }
+
+  .attend-card { background:#fff; border:1.5px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:0 4px 20px rgba(201,122,138,0.08); }
+  .attend-header {
+    background:linear-gradient(135deg,#fce8ec,#fdf0e8); padding:14px 22px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1.5px solid var(--border);
+  }
+  .attend-date { font-size:14px; font-weight:700; }
+  .attend-meta { font-size:12px; color:var(--muted); font-family:'DM Mono',monospace; }
+
+  .student-row {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 20px; border-bottom:1px solid #f0ece6; transition:background 0.15s;
+  }
+  .student-row:last-child { border-bottom:none; }
+  .student-row:hover { background:#fdf9f5; }
+  .student-info { flex:1; min-width:0; }
+  .student-name-row { display:flex; align-items:center; gap:8px; }
+  .sname { font-size:14px; font-weight:700; }
+  .progress-wrap { display:flex; align-items:center; gap:6px; margin-top:4px; }
+  .progress-dots { display:flex; gap:3px; }
+  .pdot { width:10px; height:10px; border-radius:50%; background:var(--border); transition:background 0.2s; }
+  .pdot.filled { background:var(--sage); box-shadow:0 0 4px rgba(156,176,138,0.5); }
+  .pdot.warn { background:var(--gold); box-shadow:0 0 4px rgba(212,149,106,0.5); }
+  .pdot.full { background:var(--accent); box-shadow:0 0 4px rgba(201,122,138,0.5); }
+  .progress-text { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; }
+
+  .status-btns { display:flex; gap:5px; flex-shrink:0; }
+  .status-btn {
+    border:1.5px solid var(--border); background:none; border-radius:20px;
+    padding:5px 13px; font-family:inherit; font-size:11px; cursor:pointer; transition:all 0.18s; color:var(--muted);
+  }
+  .status-btn:hover { border-color:var(--rose); color:var(--accent); }
+  .status-btn.present.on  { background:var(--sage);  border-color:var(--sage);  color:#fff; box-shadow:0 2px 8px rgba(156,176,138,0.4); }
+  .status-btn.leave.on    { background:var(--gold);  border-color:var(--gold);  color:#fff; box-shadow:0 2px 8px rgba(212,149,106,0.4); }
+  .status-btn.absent.on   { background:var(--accent);border-color:var(--accent);color:#fff; box-shadow:0 2px 8px rgba(201,122,138,0.4); }
+
+  .renewal-list { display:flex; flex-direction:column; gap:10px; }
+  .renewal-item {
+    background:#fff; border:1.5px solid var(--border); border-radius:16px;
+    padding:16px 20px; display:flex; align-items:center; gap:14px;
+    box-shadow:0 2px 12px rgba(201,122,138,0.06);
+  }
+  .renewal-info { flex:1; }
+  .renewal-name { font-size:14px; font-weight:700; }
+  .renewal-detail { font-size:12px; color:var(--muted); margin-top:2px; font-family:'DM Mono',monospace; }
+  .renewal-actions { display:flex; gap:8px; align-items:center; }
+
+  .makeup-list { display:flex; flex-direction:column; gap:10px; }
+  .makeup-item {
+    background:#fff; border:1.5px solid var(--border); border-radius:16px;
+    padding:16px 20px; display:flex; align-items:center; gap:14px;
+    box-shadow:0 2px 12px rgba(201,122,138,0.06);
+  }
+  .makeup-info { flex:1; }
+  .makeup-name { font-size:14px; font-weight:700; }
+  .makeup-detail { font-size:12px; color:var(--muted); margin-top:2px; font-family:'DM Mono',monospace; }
+  .makeup-status { font-size:11px; padding:4px 12px; border-radius:20px; font-weight:600; white-space:nowrap; }
+  .makeup-status.pending   { background:#dbeafe; color:#2563eb; }
+  .makeup-status.confirmed { background:#fff3c4; color:#a07800; }
+  .makeup-status.done      { background:#d4edda; color:#2d6a4f; }
+
+  .btn-sm {
+    border:1.5px solid var(--border); background:none; border-radius:20px;
+    padding:6px 16px; font-family:inherit; font-size:12px; cursor:pointer; transition:all 0.18s;
+  }
+  .btn-sm.sage  { border-color:var(--sage); color:var(--sage); }
+  .btn-sm.sage:hover  { background:var(--sage); color:#fff; box-shadow:0 2px 8px rgba(156,176,138,0.3); }
+  .btn-sm.gold  { border-color:var(--gold); color:var(--gold); }
+  .btn-sm.gold:hover  { background:var(--gold); color:#fff; }
+
+  .teacher-leave-row {
+    display:flex; align-items:center; justify-content:space-between;
+    background:#fff0f3; border:1.5px solid var(--rose); border-radius:16px;
+    padding:12px 18px; margin-bottom:16px;
+  }
+  .teacher-leave-row p { font-size:13px; color:var(--accent); font-weight:700; }
+  .btn-teacher-leave {
+    border:1.5px solid var(--rose); color:var(--accent); background:none;
+    border-radius:20px; padding:6px 16px; font-family:inherit; font-size:12px; cursor:pointer; transition:all 0.2s;
+  }
+  .btn-teacher-leave.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .top-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .attend-count { font-size:12px; color:var(--muted); font-family:'DM Mono',monospace; }
+
+  .add-makeup-btn {
+    display:flex; align-items:center; gap:8px; justify-content:center;
+    border:1.5px dashed var(--rose); border-radius:20px; padding:14px;
+    font-size:13px; color:var(--accent); cursor:pointer; transition:all 0.2s; background:none; width:100%; font-family:inherit;
+  }
+  .add-makeup-btn:hover { background:var(--warm); border-color:var(--accent); }
+
+  .modal-overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45);
+    z-index:200; align-items:center; justify-content:center;
+  }
+  .modal-overlay.show { display:flex; }
+  .modal {
+    background:#fff; border-radius:24px; padding:28px; width:340px; max-width:90vw;
+    box-shadow:0 20px 60px rgba(201,122,138,0.2);
+    border-top: 4px solid var(--rose);
+  }
+  .modal-title { font-size:17px; font-weight:900; margin-bottom:6px; }
+  .modal-sub { font-size:13px; color:var(--muted); margin-bottom:20px; }
+  .modal-btns { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+  .btn-modal-cancel { border:1.5px solid var(--border); background:none; border-radius:8px; padding:9px 18px; font-family:inherit; font-size:13px; cursor:pointer; }
+  .btn-modal-confirm { background:linear-gradient(135deg,#e8a4b0,#c97a8a); color:#fff; border:none; border-radius:20px; padding:9px 20px; font-family:inherit; font-size:13px; cursor:pointer; font-weight:700; box-shadow:0 2px 10px rgba(201,122,138,0.3); }
+
+  select, input[type=date] {
+    border:1.5px solid var(--border); border-radius:7px; padding:8px 12px;
+    font-family:inherit; font-size:13px; background:var(--paper); color:var(--ink); width:100%;
+  }
+  .form-row { margin-bottom:12px; }
+  .form-label { font-size:12px; color:var(--muted); margin-bottom:5px; display:block; }
+
+  /* Loading */
+  .loading { display:flex; align-items:center; justify-content:center; padding:48px; color:var(--muted); font-size:14px; gap:10px; }
+  .spinner { width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--ink); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .toast {
+    position:fixed; bottom:24px; left:50%;
+    transform:translateX(-50%) translateY(80px);
+    background:linear-gradient(135deg,#c97a8a,#d4956a); color:#fff;
+    padding:12px 24px; border-radius:20px; font-size:13px;
+    z-index:999; transition:transform 0.3s ease; white-space:nowrap;
+    box-shadow:0 4px 20px rgba(201,122,138,0.4);
+  }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">🌸 畫室管理</div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="showView('dashboard',this)">
+    <span class="nav-icon">🏠</span>總覽
+  </button>
+  <button class="nav-btn" onclick="showView('attendance',this)">
+    <span class="nav-icon">✏️</span>點名
+  </button>
+  <button class="nav-btn" onclick="showView('renewal',this)">
+    <span class="nav-icon">💰</span>收款
+  </button>
+  <button class="nav-btn" onclick="showView('makeup',this)">
+    <span class="nav-icon">📅</span>補課
+  </button>
+  <button class="nav-btn" onclick="showView('leave-mgmt',this)">
+    <span class="nav-icon">🗒️</span>請假
+  </button>
+</nav>
+
+<!-- DASHBOARD -->
+<div class="view active" id="view-dashboard">
+  <div class="view-header">
+    <div class="view-title">本週概況</div>
+    <div class="view-sub" id="dash-date">載入中...</div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-num" id="dash-total">—</div><div class="stat-label">學員總數</div></div>
+    <div class="stat-card gold"><div class="stat-num" id="dash-renewal-count">—</div><div class="stat-label">需詢問續報</div></div>
+    <div class="stat-card sage"><div class="stat-num" id="dash-paid-count">—</div><div class="stat-label">已收款</div></div>
+    <div class="stat-card accent"><div class="stat-num" id="dash-full-count">—</div><div class="stat-label">本期已滿堂</div></div>
+  </div>
+  <div class="section-label">需詢問續報（第6堂）</div>
+  <div id="dash-renewal-list"></div>
+  <div class="section-label" style="margin-top:16px;">本期已滿堂（第8堂）</div>
+  <div id="dash-full-list"></div>
+</div>
+
+<!-- ATTENDANCE -->
+<div class="view" id="view-attendance">
+  <div class="view-header">
+    <div class="view-title">點名</div>
+    <div class="view-sub">每次點名出席自動累計堂數</div>
+  </div>
+  <div class="class-tabs" id="class-tabs">
+    <button class="class-tab active" onclick="selectClass(this,'週二')">週二</button>
+    <button class="class-tab" onclick="selectClass(this,'週四')">週四</button>
+    <button class="class-tab" onclick="selectClass(this,'週日下午')">週日下午</button>
+    <button class="class-tab" onclick="selectClass(this,'週日晚上')">週日晚上</button>
+  </div>
+  <div class="top-row">
+    <div class="attend-count" id="attend-count">載入中...</div>
+    <button class="btn-teacher-leave" id="teacher-leave-btn" onclick="toggleTeacherLeave()">老師請假</button>
+  </div>
+  <div id="teacher-leave-row" style="display:none;" class="teacher-leave-row">
+    <p>⚠️ 本堂老師請假</p>
+    <span style="font-size:13px;color:var(--accent);">記得通知學員</span>
+  </div>
+  <div class="attend-card">
+    <div class="attend-header">
+      <div class="attend-date" id="attend-class-name">週二</div>
+      <div class="attend-meta" id="attend-today"></div>
+    </div>
+    <div id="student-list"><div class="loading"><div class="spinner"></div>讀取學員資料...</div></div>
+  </div>
+</div>
+
+<!-- RENEWAL -->
+<div class="view" id="view-renewal">
+  <div class="view-header">
+    <div class="view-title">續報 / 收款</div>
+    <div class="view-sub">第6堂詢問續報，第8堂確認收款</div>
+  </div>
+  <div id="renewal-list" class="renewal-list"><div class="loading"><div class="spinner"></div>載入中...</div></div>
+</div>
+
+<!-- MAKEUP -->
+<div class="view" id="view-makeup">
+  <div class="view-header">
+    <div class="view-title">補課安排</div>
+    <div class="view-sub">待安排 → 已確認 → 已完成</div>
+  </div>
+  <div id="makeup-list" class="makeup-list" style="margin-bottom:14px;"><div class="loading"><div class="spinner"></div>載入中...</div></div>
+  <button class="add-makeup-btn" onclick="openAddMakeup()">＋ 新增補課記錄</button>
+</div>
+
+<!-- MODAL: add makeup -->
+<div class="modal-overlay" id="modal-makeup">
+  <div class="modal">
+    <div class="modal-title">新增補課記錄</div>
+    <div class="modal-sub">記錄學員補課安排</div>
+    <div class="form-row"><label class="form-label">原本班次</label>
+      <select id="m-class" onchange="filterMakeupStudents()">
+        <option value="">選擇班次</option>
+        <option>週二</option><option>週四</option><option>週日下午</option><option>週日晚上</option>
+      </select>
+    </div>
+    <div class="form-row"><label class="form-label">學員</label><select id="m-student"><option value="">請先選班次</option></select></div>
+    <div class="form-row"><label class="form-label">補課到哪一班</label>
+      <select id="m-target" onchange="toggleSundayTarget()">
+        <option value="">選擇補課班次</option>
+        <option value="週二">週二</option>
+        <option value="週四">週四</option>
+        <option value="週日">週日</option>
+      </select>
+    </div>
+    <div class="form-row" id="m-sunday-row" style="display:none;"><label class="form-label">週日時段</label>
+      <select id="m-sunday-time">
+        <option value="週日下午">下午</option>
+        <option value="週日晚上">晚上</option>
+      </select>
+    </div>
+    <div class="form-row"><label class="form-label">補課日期</label><input type="date" id="m-date"></div>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeModal('modal-makeup')">取消</button>
+      <button class="btn-modal-confirm" onclick="addMakeup()">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEAVE MGMT VIEW -->
+<div class="view" id="view-leave-mgmt">
+  <div class="view-header">
+    <div class="view-title">請假記錄</div>
+    <div class="view-sub">提前登記學員請假，點名當天自動預填</div>
+  </div>
+  <div style="margin-bottom:14px;">
+    <button class="add-makeup-btn" onclick="openAddLeave()">＋ 新增請假</button>
+  </div>
+  <div id="leave-list"></div>
+</div>
+
+<!-- MODAL: add leave -->
+<div class="modal-overlay" id="modal-add-leave">
+  <div class="modal">
+    <div class="modal-title">新增請假</div>
+    <div class="modal-sub">提前登記學員請假日期</div>
+    <div class="form-row"><label class="form-label">班次</label>
+      <select id="al-class" onchange="filterLeaveStudents()">
+        <option value="">選擇班次</option>
+        <option>週二</option><option>週四</option><option>週日下午</option><option>週日晚上</option>
+      </select>
+    </div>
+    <div class="form-row"><label class="form-label">學員</label>
+      <select id="al-student"><option value="">請先選班次</option></select>
+    </div>
+    <div class="form-row"><label class="form-label">請假日期</label>
+      <input type="date" id="al-date">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeModal('modal-add-leave')">取消</button>
+      <button class="btn-modal-confirm" onclick="submitAddLeave()">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: edit makeup -->
+<div class="modal-overlay" id="modal-edit-makeup">
+  <div class="modal">
+    <div class="modal-title">編輯補課記錄</div>
+    <div class="modal-sub">修改或刪除這筆補課</div>
+    <div class="form-row"><label class="form-label">原本班次</label>
+      <select id="em-class">
+        <option>週二</option><option>週四</option><option>週日下午</option><option>週日晚上</option>
+      </select>
+    </div>
+    <div class="form-row"><label class="form-label">補課到哪一班</label>
+      <select id="em-target" onchange="toggleEditSunday()">
+        <option value="週二">週二</option>
+        <option value="週四">週四</option>
+        <option value="週日">週日</option>
+      </select>
+    </div>
+    <div class="form-row" id="em-sunday-row" style="display:none;"><label class="form-label">週日時段</label>
+      <select id="em-sunday-time">
+        <option value="週日下午">下午</option>
+        <option value="週日晚上">晚上</option>
+      </select>
+    </div>
+    <div class="form-row"><label class="form-label">補課日期</label><input type="date" id="em-date"></div>
+    <div class="modal-btns" style="justify-content:space-between;">
+      <button class="btn-sm accent" style="border-color:var(--accent);color:var(--accent);" onclick="deleteMakeupItem()">刪除</button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-modal-cancel" onclick="closeModal('modal-edit-makeup')">取消</button>
+        <button class="btn-modal-confirm" onclick="saveEditMakeup()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: reset sessions -->
+<div class="modal-overlay" id="modal-reset">
+  <div class="modal">
+    <div class="modal-title" id="modal-reset-title">開始新一期</div>
+    <div class="modal-sub" id="modal-reset-sub"></div>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeModal('modal-reset')">取消</button>
+      <button class="btn-modal-confirm" onclick="confirmReset()">確認開始新一期</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: confirm paid -->
+<div class="modal-overlay" id="modal-paid">
+  <div class="modal">
+    <div class="modal-title" id="modal-paid-title">確認收款</div>
+    <div class="modal-sub" id="modal-paid-sub"></div>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeModal('modal-paid')">取消</button>
+      <button class="btn-modal-confirm" onclick="confirmPaid()">✓ 已收到轉帳</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast-el"></div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbxrYGG1KdbSwHyxv9Ie6TGn5KXx9a5WCQ8M3n7m0ChOczMcKibVW8wJSfjmW7qJOHVQJg/exec';
+
+// ── State ─────────────────────────────────────
+let students = [];
+let sessions = [];
+let makeups = [];
+let payments = [];
+let currentClass = '週二';
+let teacherLeave = false;
+let pendingPaidStudent = null;
+let leaves = [];
+// attendance state for current session (not yet saved)
+// { student_id: 'present'|'leave'|'absent'|null }
+let attendanceState = {};
+
+const today = new Date().toISOString().split('T')[0];
+
+// 如果是新的一天，自動清空點名狀態
+const lastAttendDate = localStorage.getItem('lastAttendDate');
+if (lastAttendDate !== today) {
+  localStorage.setItem('lastAttendDate', today);
+  // attendanceState 會在 init() 之後重設，這裡只清 flag
+}
+
+// ── API helpers ───────────────────────────────
+async function apiGet(action) {
+  const res = await fetch(`${API}?action=${action}`);
+  return res.json();
+}
+async function apiPost(data) {
+  const res = await fetch(API, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+  return res.json();
+}
+
+// ── Init ──────────────────────────────────────
+function getNextClassDate(className) {
+  const dayMap = { '週二': 2, '週四': 4, '週日下午': 0, '週日晚上': 0 };
+  const target = dayMap[className];
+  if (target === undefined) return today;
+  const now = new Date();
+  const current = now.getDay(); // 0=Sun, 1=Mon...
+  let diff = target - current;
+  if (diff < 0) diff += 7;
+  const next = new Date(now);
+  next.setDate(now.getDate() + diff);
+  return next.toISOString().split('T')[0];
+}
+
+function normalizeDate(val) {
+  const s = String(val);
+  if (s.includes('T')) {
+    // UTC datetime from Sheet → convert to Taiwan time (UTC+8)
+    const d = new Date(s);
+    d.setHours(d.getHours() + 8);
+    return d.toISOString().split('T')[0];
+  }
+  return s.split('T')[0];
+}
+
+function normalizeMakeups(data) {
+  return data.map(m => ({
+    ...m,
+    makeup_date: normalizeDate(m.makeup_date),
+    makeup_target: m.makeup_target || '',
+    original_class: m.original_class || '',
+  }));
+}
+
+async function init() {
+  try {
+    const results = await Promise.allSettled([
+      apiGet('getStudents'),
+      apiGet('getSessions'),
+      apiGet('getMakeups').then(normalizeMakeups),
+      apiGet('getPayments'),
+      apiGet('getLeaves')
+    ]);
+    students = results[0].status === 'fulfilled' && Array.isArray(results[0].value) ? results[0].value : [];
+    sessions = results[1].status === 'fulfilled' && Array.isArray(results[1].value) ? results[1].value : [];
+    makeups  = results[2].status === 'fulfilled' && Array.isArray(results[2].value) ? results[2].value : [];
+    payments = results[3].status === 'fulfilled' && Array.isArray(results[3].value) ? results[3].value : [];
+    leaves   = results[4].status === 'fulfilled' && Array.isArray(results[4].value) ? results[4].value : [];
+    console.log('loaded:', students.length, sessions.length, makeups.length, payments.length, leaves.length);
+    if (results.some(r => r.status === 'rejected')) toast('⚠️ 部分資料載入失敗，請重新整理');
+    // init attendance state，若是新的一天就清空
+    const savedDate = localStorage.getItem('attendDate');
+    const savedState = localStorage.getItem('attendState');
+    if (savedDate === today && savedState) {
+      Object.assign(attendanceState, JSON.parse(savedState));
+    }
+    students.forEach(s => {
+      const key = String(s.student_id);
+      if (attendanceState[key] === undefined) attendanceState[key] = null;
+    });
+    localStorage.setItem('attendDate', today);
+    try { renderDashboard(); } catch(e) { console.error('renderDashboard error:', e); }
+    try { renderAttendance(); } catch(e) { console.error('renderAttendance error:', e); }
+    // attend-today is set dynamically in renderAttendance
+    const now = new Date();
+    document.getElementById('dash-date').textContent =
+      `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  } catch(e) {
+    toast('⚠️ 無法連線到 Google Sheets');
+  }
+}
+
+// ── Session count per student ─────────────────
+function getSessionCount(studentId) {
+  const count = sessions.filter(s => s.student_id == studentId && s.status === 'present').length;
+  return Math.min(count, 8);
+}
+
+function isPaid(studentId) {
+  const p = payments.find(p => p.student_id == studentId);
+  return p && p.paid === true;
+}
+
+// ── Dashboard ─────────────────────────────────
+function renderDashboard() {
+  const renewal = students.filter(s => getSessionCount(s.student_id) === 6);
+  const full    = students.filter(s => getSessionCount(s.student_id) >= 8 && !isPaid(s.student_id));
+  const paid    = students.filter(s => getSessionCount(s.student_id) >= 8 && isPaid(s.student_id));
+
+  document.getElementById('dash-total').textContent = students.length;
+  document.getElementById('dash-renewal-count').textContent = renewal.length;
+  document.getElementById('dash-full-count').textContent = full.length;
+  document.getElementById('dash-paid-count').textContent = paid.length;
+
+  const rList = document.getElementById('dash-renewal-list');
+  rList.innerHTML = renewal.length ? renewal.map(s => `
+    <div class="alert-card renewal">
+      <div class="alert-left">
+        <div class="alert-name">${s.name}</div>
+        <div class="alert-detail">${s.class} ・ 已上 ${getSessionCount(s.student_id)} 堂</div>
+      </div>
+      <span class="badge badge-gold">詢問續報</span>
+    </div>`).join('') : '<div style="font-size:13px;color:var(--muted);padding:8px 0;">目前沒有需要詢問的學員</div>';
+
+  const fList = document.getElementById('dash-full-list');
+  fList.innerHTML = full.length ? full.map(s => `
+    <div class="alert-card full">
+      <div class="alert-left">
+        <div class="alert-name">${s.name}</div>
+        <div class="alert-detail">本期 8 堂已滿</div>
+      </div>
+      <span class="badge ${isPaid(s.student_id)?'badge-sage':'badge-accent'}">${isPaid(s.student_id)?'✓ 已收款':'待收款'}</span>
+      ${isPaid(s.student_id) ? `<button class="btn-sm" style="border-color:var(--rose);color:var(--accent);font-size:11px;" onclick="openResetModal(${s.student_id},'${s.name}')">新一期</button>` : ''}
+    </div>`).join('') : '<div style="font-size:13px;color:var(--muted);padding:8px 0;">目前沒有滿堂學員</div>';
+}
+
+// ── Attendance ────────────────────────────────
+function selectClass(el, cls) {
+  document.querySelectorAll('.class-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  currentClass = cls;
+  renderAttendance();
+}
+
+function renderAttendance() {
+  document.getElementById('attend-class-name').textContent = currentClass;
+  document.getElementById('attend-today').textContent = getNextClassDate(currentClass);
+  const list = document.getElementById('student-list');
+
+  // 固定學員
+  const classStudents = students.filter(s => s.class === currentClass);
+
+  // 該班上課日補課學員（補課日 = 班次日期，狀態 = confirmed）
+  const classDate = getNextClassDate(currentClass);
+  const todayMakeups = makeups.filter(m => {
+    const d = String(m.makeup_date).split('T')[0];
+    return d === classDate && m.makeup_target === currentClass && m.status === 'confirmed';
+  });
+  const makeupStudentIds = todayMakeups.map(m => m.student_id);
+  const makeupStudents = students.filter(s => makeupStudentIds.includes(s.student_id) && !classStudents.find(c => c.student_id === s.student_id));
+
+  // 該班上課日請假（提前記錄）
+  const todayLeaveIds = leaves
+    .filter(l => normalizeDate(l.leave_date) === classDate)
+    .map(l => l.student_id);
+
+  // 初始化：提前請假的預填
+  classStudents.forEach(s => {
+    const key = String(s.student_id);
+    if (attendanceState[key] === null && todayLeaveIds.map(String).includes(String(s.student_id))) {
+      attendanceState[key] = 'leave';
+    }
+  });
+
+  const allStudents = [
+    ...classStudents,
+    ...makeupStudents.map(s => ({ ...s, _isMakeup: true }))
+  ];
+
+  if (!allStudents.length) {
+    list.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted);">此班目前沒有學員</div>';
+    document.getElementById('attend-count').textContent = '出席 0 / 0';
+    return;
+  }
+
+  list.innerHTML = allStudents.map(s => {
+    const n = getSessionCount(s.student_id);
+    const st = attendanceState[s.student_id];
+    const warn6 = n === 6, full = n >= 8;
+    const dots = Array.from({length:8},(_,i) => {
+      const c = i < n ? (full?'full':(warn6&&i===5?'warn':'filled')) : '';
+      return `<div class="pdot ${c}"></div>`;
+    }).join('');
+    const badge = full
+      ? `<span class="badge badge-accent" style="font-size:10px;">滿堂</span>`
+      : warn6 ? `<span class="badge badge-gold" style="font-size:10px;">詢問續報</span>` : '';
+    const makeupBadge = s._isMakeup
+      ? `<span class="badge" style="font-size:10px;background:#dbeafe;color:#2563eb;">補課</span>` : '';
+    const leaveBadge = !s._isMakeup && todayLeaveIds.includes(s.student_id) && st === 'leave'
+      ? `<span class="badge badge-gold" style="font-size:10px;">已請假</span>` : '';
+    return `
+    <div class="student-row" style="${s._isMakeup?'background:#f0f7ff;':''}">
+      <div class="student-info">
+        <div class="student-name-row"><span class="sname">${s.name}</span>${badge}${makeupBadge}${leaveBadge}</div>
+        <div class="progress-wrap">
+          <div class="progress-dots">${dots}</div>
+          <span class="progress-text">${n}/8</span>
+        </div>
+      </div>
+      <div class="status-btns">
+        <button class="status-btn present ${st==='present'?'on':''}" onclick="setStatus(${s.student_id},'present')">出席</button>
+        <button class="status-btn leave ${st==='leave'?'on':''}" onclick="setStatus(${s.student_id},'leave')">請假</button>
+        <button class="status-btn absent ${st==='absent'?'on':''}" onclick="setStatus(${s.student_id},'absent')">缺席</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const presentCount = allStudents.filter(s => attendanceState[s.student_id] === 'present').length;
+  document.getElementById('attend-count').textContent = `出席 ${presentCount} / ${allStudents.length}`;
+}
+
+function setStatus(studentId, status) {
+  studentId = String(studentId);
+  const prev = attendanceState[studentId];
+  const newStatus = prev === status ? null : status;
+  attendanceState[studentId] = newStatus;
+
+  // 樂觀更新：先算出新堂數給畫面用
+  if (newStatus === 'present') {
+    const currentCount = getSessionCount(studentId);
+    if (currentCount >= 8) {
+      toast('⚠️ 這位學員本期已滿 8 堂');
+      return;
+    }
+    sessions = [...sessions, { student_id: studentId, status: 'present' }];
+  } else if (prev === 'present') {
+    const idx = sessions.map((s,i)=>({s,i})).reverse().find(({s})=>s.student_id==studentId && s.status==='present');
+    if (idx) sessions = sessions.filter((_,i)=>i!==idx.i);
+  }
+
+  // 立刻更新畫面
+  localStorage.setItem('attendState', JSON.stringify(attendanceState));
+  renderAttendance();
+  renderDashboard();
+
+  // 背景儲存，不等待
+  if (newStatus) {
+    const s = students.find(x=>x.student_id==studentId);
+    const n = getSessionCount(studentId);
+    if (newStatus === 'present' && n === 6) toast(`🔔 ${s.name} 已上第6堂，記得詢問續報！`);
+    if (newStatus === 'present' && n === 8) toast(`🎨 ${s.name} 本期8堂已滿！`);
+    apiPost({ action:'addSession', student_id: studentId, date: today, status: newStatus, note:'' })
+      .then(() => apiGet('getSessions'))
+      .then(data => { sessions = data; })
+      .catch(() => toast('⚠️ 儲存失敗，請檢查網路'));
+
+    // 如果是補課學員點出席，自動把補課狀態改為已完成
+    if (newStatus === 'present') {
+      const todayMakeup = makeups.find(m =>
+        m.student_id == studentId &&
+        String(m.makeup_date).split('T')[0] === getNextClassDate(currentClass) &&
+        m.status === 'confirmed'
+      );
+      if (todayMakeup) {
+        todayMakeup.status = 'done';
+        apiPost({ action:'updateMakeup', makeup_id: todayMakeup.makeup_id, status: 'done' })
+          .catch(() => toast('⚠️ 補課狀態更新失敗'));
+      }
+    }
+  }
+}
+
+function toggleTeacherLeave() {
+  teacherLeave = !teacherLeave;
+  const btn = document.getElementById('teacher-leave-btn');
+  btn.classList.toggle('on', teacherLeave);
+  btn.textContent = teacherLeave ? '取消老師請假' : '老師請假';
+  document.getElementById('teacher-leave-row').style.display = teacherLeave ? 'flex' : 'none';
+}
+
+// ── Renewal ───────────────────────────────────
+function renderRenewal() {
+  const items = students.filter(s => getSessionCount(s.student_id) >= 6)
+    .sort((a,b) => getSessionCount(b.student_id) - getSessionCount(a.student_id));
+  const list = document.getElementById('renewal-list');
+  if (!items.length) { list.innerHTML='<div style="font-size:13px;color:var(--muted);">目前沒有需要處理的學員</div>'; return; }
+  list.innerHTML = items.map(s => {
+    const n = getSessionCount(s.student_id);
+    const paid = isPaid(s.student_id);
+    const isFull = n >= 8;
+    const badge = paid
+      ? `<span class="badge badge-sage">✓ 已收款</span>`
+      : isFull ? `<span class="badge badge-accent">待收款</span>`
+               : `<span class="badge badge-gold">詢問中</span>`;
+    const action = paid
+      ? `<button class="btn-sm" style="border-color:var(--rose);color:var(--accent);" onclick="openResetModal(${s.student_id},'${s.name}')">開始新一期</button>`
+      : `<button class="btn-sm sage" onclick="openPaidModal(${s.student_id},'${s.name}')">✓ 收款</button>`;
+    return `
+    <div class="renewal-item">
+      <div class="renewal-info">
+        <div class="renewal-name">${s.name}</div>
+        <div class="renewal-detail">${s.class} ・ 已上 ${n}/8 堂</div>
+      </div>
+      ${badge}
+      <div class="renewal-actions">${action}</div>
+    </div>`;
+  }).join('');
+}
+
+let pendingResetStudent = null;
+
+function openResetModal(studentId, name) {
+  pendingResetStudent = studentId;
+  document.getElementById('modal-reset-title').textContent = `開始新一期 — ${name}`;
+  document.getElementById('modal-reset-sub').textContent = `確認後 ${name} 的堂數將歸零，重新開始累計新一期的 8 堂。`;
+  document.getElementById('modal-reset').classList.add('show');
+}
+
+async function confirmReset() {
+  try {
+    // Optimistic: remove present sessions for this student locally
+    sessions = sessions.filter(s => !(s.student_id == pendingResetStudent && s.status === 'present'));
+    payments = payments.filter(p => p.student_id != pendingResetStudent);
+    closeModal('modal-reset');
+    renderRenewal();
+    renderDashboard();
+    toast('✓ 已開始新一期，堂數歸零');
+    await apiPost({ action: 'resetSessions', student_id: pendingResetStudent });
+    sessions = await apiGet('getSessions');
+    payments = await apiGet('getPayments');
+    renderRenewal();
+    renderDashboard();
+    renderAttendance();
+  } catch(e) {
+    toast('⚠️ 重設失敗，請檢查網路');
+  }
+}
+
+function openPaidModal(studentId, name) {
+  pendingPaidStudent = studentId;
+  document.getElementById('modal-paid-title').textContent = `確認收款 — ${name}`;
+  document.getElementById('modal-paid-sub').textContent = `確認已收到 ${name} 的續報轉帳？`;
+  document.getElementById('modal-paid').classList.add('show');
+}
+
+async function confirmPaid() {
+  try {
+    await apiPost({ action:'updatePayment', student_id: pendingPaidStudent });
+    payments = await apiGet('getPayments');
+    toast('✓ 已記錄收款完成');
+    closeModal('modal-paid');
+    renderRenewal();
+    renderDashboard();
+  } catch(e) {
+    toast('⚠️ 儲存失敗');
+  }
+}
+
+// ── Makeup ────────────────────────────────────
+let editingMakeupId = null;
+
+function openEditMakeup(makeupId) {
+  const m = makeups.find(x => x.makeup_id == makeupId);
+  if (!m) return;
+  editingMakeupId = makeupId;
+  document.getElementById('em-class').value = m.original_class || '週二';
+  const target = m.makeup_target || '';
+  const isSunday = target === '週日下午' || target === '週日晚上';
+  document.getElementById('em-target').value = isSunday ? '週日' : (target || '週二');
+  document.getElementById('em-sunday-row').style.display = isSunday ? 'block' : 'none';
+  if (isSunday) document.getElementById('em-sunday-time').value = target;
+  document.getElementById('em-date').value = String(m.makeup_date).split('T')[0];
+  document.getElementById('modal-edit-makeup').classList.add('show');
+}
+
+function toggleEditSunday() {
+  const val = document.getElementById('em-target').value;
+  document.getElementById('em-sunday-row').style.display = val === '週日' ? 'block' : 'none';
+}
+
+function saveEditMakeup() {
+  const m = makeups.find(x => x.makeup_id == editingMakeupId);
+  if (!m) return;
+  const targetRaw = document.getElementById('em-target').value;
+  const target = targetRaw === '週日' ? document.getElementById('em-sunday-time').value : targetRaw;
+  m.original_class = document.getElementById('em-class').value;
+  m.makeup_target = target;
+  m.makeup_date = document.getElementById('em-date').value;
+  closeModal('modal-edit-makeup');
+  renderMakeupList();
+  toast('已更新補課記錄');
+  apiPost({ action:'updateMakeup', makeup_id: editingMakeupId, status: m.status,
+            original_class: m.original_class, makeup_target: m.makeup_target, makeup_date: m.makeup_date })
+    .then(() => apiGet('getMakeups').then(normalizeMakeups)).then(data => { makeups = data; renderMakeupList(); })
+    .catch(() => toast('⚠️ 儲存失敗'));
+}
+
+function deleteMakeupItem() {
+  const m = makeups.find(x => x.makeup_id == editingMakeupId);
+  const name = m ? (students.find(s=>s.student_id==m.student_id)||{}).name : '';
+  makeups = makeups.filter(x => x.makeup_id != editingMakeupId);
+  closeModal('modal-edit-makeup');
+  renderMakeupList();
+  toast(`已刪除 ${name} 的補課記錄`);
+  apiPost({ action:'deleteMakeup', makeup_id: editingMakeupId })
+    .catch(() => toast('⚠️ 刪除失敗'));
+}
+
+function renderMakeupList() {
+  const list = document.getElementById('makeup-list');
+  if (!makeups.length) { list.innerHTML='<div style="font-size:13px;color:var(--muted);padding:16px 0;">目前沒有補課記錄</div>'; return; }
+  const statusLabel = { pending:'待安排', confirmed:'已確認', done:'已完成' };
+  list.innerHTML = makeups.map(m => {
+    const s = students.find(x=>x.student_id==m.student_id);
+    const name = s ? s.name : '—';
+    const actions = m.status==='pending'
+      ? `<button class="btn-sm sage" onclick="updateMakeupStatus(${m.makeup_id},'confirmed')">排好了</button>
+         <button class="btn-sm" style="border-color:var(--muted);color:var(--muted);" onclick="openEditMakeup(${m.makeup_id})">編輯</button>`
+      : m.status==='confirmed'
+        ? `<button class="btn-sm sage" onclick="updateMakeupStatus(${m.makeup_id},'done')">已補課</button>`
+        : `<span style="font-size:12px;color:var(--sage);">✓ 完成</span>`;
+    return `
+    <div class="makeup-item">
+      <div class="makeup-info">
+        <div class="makeup-name">${name}</div>
+        <div class="makeup-detail">${m.original_class} → ${m.makeup_target||'—'} ・ ${normalizeDate(m.makeup_date)}</div>
+      </div>
+      <span class="makeup-status ${m.status}">${statusLabel[m.status]||m.status}</span>
+      <div style="display:flex;gap:6px;">${actions}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateMakeupStatus(makeupId, status) {
+  // 樂觀更新
+  const m = makeups.find(x => x.makeup_id == makeupId);
+  if (m) m.status = status;
+  renderMakeupList();
+  toast(status==='confirmed'?'✓ 日期已確認':'🎨 補課完成！');
+
+  // 背景儲存
+  apiPost({ action:'updateMakeup', makeup_id: makeupId, status })
+    .then(() => apiGet('getMakeups'))
+    .then(data => { makeups = data; renderMakeupList(); })
+    .catch(() => toast('⚠️ 儲存失敗，請檢查網路'));
+}
+
+function openAddMakeup() {
+  document.getElementById('m-class').value = '';
+  document.getElementById('m-student').innerHTML = '<option value="">請先選班次</option>';
+  document.getElementById('m-target').value = '';
+  document.getElementById('m-sunday-row').style.display = 'none';
+  document.getElementById('m-date').value = '';
+  document.getElementById('modal-makeup').classList.add('show');
+}
+
+function toggleSundayTarget() {
+  const val = document.getElementById('m-target').value;
+  document.getElementById('m-sunday-row').style.display = val === '週日' ? 'block' : 'none';
+}
+
+function filterMakeupStudents() {
+  const cls = document.getElementById('m-class').value;
+  const sel = document.getElementById('m-student');
+  if (!cls) { sel.innerHTML = '<option value="">請先選班次</option>'; return; }
+  const filtered = students.filter(s => s.class === cls);
+  sel.innerHTML = filtered.length
+    ? filtered.map(s=>`<option value="${s.student_id}">${s.name}</option>`).join('')
+    : '<option value="">此班沒有學員</option>';
+}
+
+function addMakeup() {
+  const studentId = document.getElementById('m-student').value;
+  const cls = document.getElementById('m-class').value;
+  const date = document.getElementById('m-date').value || today;
+  const targetRaw = document.getElementById('m-target').value;
+  const target = targetRaw === '週日'
+    ? document.getElementById('m-sunday-time').value
+    : targetRaw;
+  if (!cls || !studentId || !targetRaw) { toast('請填寫完整資料'); return; }
+
+  // 樂觀更新：先加進本地
+  const tempId = Date.now();
+  makeups = [{ makeup_id: tempId, student_id: studentId, original_class: cls, makeup_target: target, makeup_date: date, status: 'pending' }, ...makeups];
+  closeModal('modal-makeup');
+  renderMakeupList();
+  toast('已新增補課記錄');
+
+  // 背景儲存
+  apiPost({ action:'addMakeup', student_id: studentId, original_class: cls, makeup_target: target, makeup_date: date })
+    .then(() => apiGet('getMakeups'))
+    .then(data => { makeups = data; renderMakeupList(); })
+    .catch(() => toast('⚠️ 儲存失敗，請檢查網路'));
+}
+
+// ── Views ─────────────────────────────────────
+function showView(name, btn) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(name==='renewal') renderRenewal();
+  if(name==='makeup') renderMakeupList();
+  if(name==='leave-mgmt') renderLeaveList();
+}
+
+// ── Utils ─────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(m =>
+  m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('show'); }));
+
+function toast(msg) {
+  const el = document.getElementById('toast-el');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.classList.remove('show'), 3000);
+}
+
+// ── Leave Management ─────────────────────────
+function renderLeaveList() {
+  const list = document.getElementById('leave-list');
+  const upcoming = leaves
+    .filter(l => String(l.leave_date).split('T')[0] >= today)
+    .sort((a,b) => String(a.leave_date).localeCompare(String(b.leave_date)));
+  const past = leaves
+    .filter(l => String(l.leave_date).split('T')[0] < today)
+    .sort((a,b) => String(b.leave_date).localeCompare(String(a.leave_date)))
+    .slice(0, 5);
+
+  const renderItem = l => {
+    const s = students.find(x => x.student_id == l.student_id);
+    const name = s ? s.name : '—';
+    const cls = s ? s.class : '—';
+    const date = normalizeDate(l.leave_date);
+    const isPast = date < today;
+    return `
+    <div class="renewal-item" style="${isPast?'opacity:0.5':''}">
+      <div class="renewal-info">
+        <div class="renewal-name">${name}</div>
+        <div class="renewal-detail">${cls} ・ ${date}</div>
+      </div>
+      <span class="badge ${isPast?'badge-gray':'badge-gold'}">${isPast?'已過':'待請假'}</span>
+      <button class="btn-sm accent" onclick="deleteLeaveItem(${l.leave_id})">刪除</button>
+    </div>`;
+  };
+
+  list.innerHTML = (upcoming.length + past.length === 0)
+    ? '<div style="font-size:13px;color:var(--muted);">目前沒有請假記錄</div>'
+    : [...upcoming, ...past].map(renderItem).join('');
+}
+
+function openAddLeave() {
+  document.getElementById('al-class').value = '';
+  document.getElementById('al-student').innerHTML = '<option value="">請先選班次</option>';
+  document.getElementById('al-date').value = '';
+  document.getElementById('modal-add-leave').classList.add('show');
+}
+
+function filterLeaveStudents() {
+  const cls = document.getElementById('al-class').value;
+  const sel = document.getElementById('al-student');
+  if (!cls) { sel.innerHTML = '<option value="">請先選班次</option>'; return; }
+  const filtered = students.filter(s => s.class === cls);
+  sel.innerHTML = filtered.map(s=>`<option value="${s.student_id}">${s.name}</option>`).join('');
+}
+
+function submitAddLeave() {
+  const studentId = document.getElementById('al-student').value;
+  const date = document.getElementById('al-date').value;
+  if (!studentId || !date) { toast('請填寫完整資料'); return; }
+  const tempId = Date.now();
+  leaves = [...leaves, { leave_id: tempId, student_id: studentId, leave_date: date }];
+  closeModal('modal-add-leave');
+  renderLeaveList();
+  toast('已新增請假記錄');
+  apiPost({ action:'addLeave', student_id: studentId, leave_date: date })
+    .then(() => apiGet('getLeaves')).then(data => { leaves = data; renderLeaveList(); })
+    .catch(() => toast('⚠️ 儲存失敗'));
+}
+
+function deleteLeaveItem(leaveId) {
+  const l = leaves.find(x => x.leave_id == leaveId);
+  const s = l ? students.find(x => x.student_id == l.student_id) : null;
+  leaves = leaves.filter(x => x.leave_id != leaveId);
+  renderLeaveList();
+  toast(`已刪除 ${s ? s.name : ''} 的請假記錄`);
+  apiPost({ action:'deleteLeave', leave_id: leaveId })
+    .catch(() => toast('⚠️ 刪除失敗'));
+}
+
+init();
+</script>
+</body>
+</html>
