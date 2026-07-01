@@ -232,7 +232,7 @@
 <body>
 
 <div class="topbar">
-  <div class="topbar-title">🌸 畫室管理</div>
+  <div class="topbar-title">🌸 畫室管理測試測試測試用</div>
 </div>
 
 <nav class="bottom-nav">
@@ -483,6 +483,9 @@ async function apiGet(action) {
 async function apiPost(data) {
   const res = await fetch(API, {
     method: 'POST',
+    headers: {
+    'Content-Type': 'application/json' // 👈 這行是造成瀏覽器CORS問題的罪魁禍0701
+  },
     body: JSON.stringify(data)
   });
   return res.json();
